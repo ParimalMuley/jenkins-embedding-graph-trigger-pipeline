@@ -1,5 +1,5 @@
 pipeline {
-    agent worker-1
+    agent { label 'my-gcp-vm' }
  
     environment {
         // ── Google Cloud ──────────────────────────────────────────────

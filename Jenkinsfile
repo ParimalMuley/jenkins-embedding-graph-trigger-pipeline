@@ -18,7 +18,7 @@ pipeline {
         // No auth on the gateway — dummy key satisfies the OpenAI client's
         // requirement for a non-empty Authorization header.
         LITELLM_BASE_URL    = 'http://34.139.139.250/v1'
-        LITELLM_API_KEY     = 'inference-master-key'
+        LITELLM_API_KEY     = 'no-auth'
         EMBEDDING_MODEL     = 'qwen-embedding'
         EMBEDDING_DIMENSION = '1536'
  
@@ -111,7 +111,13 @@ pipeline {
                     artifacts: 'artifacts/pipeline_report.json, artifacts/chunks.json, artifacts/knowledge_graph.json',
                     allowEmptyArchive: true
                 )
-                sh 'rm -f "${ARTIFACTS_DIR}/${DOWNLOADED_FILE}" "${ARTIFACTS_DIR}/chunks_with_embeddings.json" || true'
+                // Guard against DOWNLOADED_FILE being empty if pipeline failed early
+                sh '''
+                    if [ -n "${DOWNLOADED_FILE:-}" ]; then
+                        rm -f "${ARTIFACTS_DIR}/${DOWNLOADED_FILE}" || true
+                    fi
+                    rm -f "${ARTIFACTS_DIR}/chunks_with_embeddings.json" || true
+                '''
             }
         }
         success { echo ' Pipeline completed successfully!' }

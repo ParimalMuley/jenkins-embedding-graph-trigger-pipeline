@@ -1,12 +1,11 @@
-
 pipeline {
     agent any
  
     environment {
         // ── Google Cloud ──────────────────────────────────────────────
         // Auth via VM's attached service account — no credential needed.
-        GCS_BUCKET          = 'application-parimal-terraform-bucket'
-        GCS_OBJECT_PATH     = '/'
+        GCS_BUCKET          = credentials('gcs-bucket-name')
+        GCS_OBJECT_PATH     = credentials('gcs-object-path')
  
         // ── Groq (LLM — graph extraction) ────────────────────────────
         // Free tier: https://console.groq.com -> API Keys
@@ -15,18 +14,24 @@ pipeline {
         LLM_MODEL           = 'llama-3.3-70b-versatile'
  
         // ── LiteLLM / Qwen2.5 (Embeddings) ───────────────────────────
-        // Qwen embedding model served via LiteLLM on GKE
+        // Qwen embedding model served via LiteLLM on GKE.
+        // No auth on the gateway — dummy key satisfies the OpenAI client's
+        // requirement for a non-empty Authorization header.
         LITELLM_BASE_URL    = 'http://34.139.139.250/v1'
-        LITELLM_API_KEY     = credentials('litellm-api-key')
+        LITELLM_API_KEY     = 'inference-master-key'
         EMBEDDING_MODEL     = 'qwen-embedding'
         EMBEDDING_DIMENSION = '1536'
  
+        // ── Neo4j ─────────────────────────────────────────────────────
+        // No auth configured — connecting without username/password.
         NEO4J_URI           = credentials('neo4j-uri')
  
-      
+        // ── Qdrant ────────────────────────────────────────────────────
+        // No auth configured — connecting without API key.
         QDRANT_HOST         = credentials('qdrant-host')
         QDRANT_COLLECTION   = 'document_embeddings'
  
+        // ── Pipeline config ───────────────────────────────────────────
         CHUNK_SIZE          = '512'
         CHUNK_OVERLAP       = '64'
         PYTHON_VENV         = "${WORKSPACE}/.venv"
@@ -101,11 +106,13 @@ pipeline {
  
     post {
         always {
-            archiveArtifacts(
-                artifacts: 'artifacts/pipeline_report.json, artifacts/chunks.json, artifacts/knowledge_graph.json',
-                allowEmptyArchive: true
-            )
-            sh 'rm -f "${ARTIFACTS_DIR}/${DOWNLOADED_FILE}" "${ARTIFACTS_DIR}/chunks_with_embeddings.json" || true'
+            node(null) {
+                archiveArtifacts(
+                    artifacts: 'artifacts/pipeline_report.json, artifacts/chunks.json, artifacts/knowledge_graph.json',
+                    allowEmptyArchive: true
+                )
+                sh 'rm -f "${ARTIFACTS_DIR}/${DOWNLOADED_FILE}" "${ARTIFACTS_DIR}/chunks_with_embeddings.json" || true'
+            }
         }
         success { echo ' Pipeline completed successfully!' }
         failure { echo ' Pipeline failed — check stage logs above.' }

@@ -17,7 +17,7 @@ pipeline {
         // Qwen embedding model served via LiteLLM on GKE.
         // No auth on the gateway — dummy key satisfies the OpenAI client's
         // requirement for a non-empty Authorization header.
-        LITELLM_BASE_URL    = 'http://34.139.139.250/v1'
+        LITELLM_BASE_URL    = 'http://104.196.197.64/v1'
         LITELLM_API_KEY     = 'no-auth'
         EMBEDDING_MODEL     = 'qwen-embedding'
         EMBEDDING_DIMENSION = '1536'
